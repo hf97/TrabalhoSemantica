@@ -36,8 +36,8 @@ data AM1 = PUSH Val
         | LE
         | AND
         | NEG
-        | GET Int
-        | PUT Int
+        | FETCH Int
+        | STORE Int
         | NOOP
         -- // TODO meter com code em vez de [AM1]
         | BRANCH [AM1] [AM1]
@@ -49,14 +49,43 @@ data AM1 = PUSH Val
 type Code = [AM1]
 -- //TODO meter o vazio ???
 
-update :: Int -> Int -> Memory -> Memory
-update n a s = [(n, a)] ++ filter (\(key, value) -> key /= n) s
+update :: Int -> Val -> Memory -> Memory
+update n (N a) s = [(n, a)] ++ filter (\(key, value) -> key /= n) s
 
-get :: Int -> Memory -> Int
+get :: Int -> Memory -> [Val]
 -- //TODO mudar if then else para otherwise
 get n ((key,value):t) = if n == key
-                        then value
+                        then [N value]
                         else get n t
+
+sumValInt :: Val -> Val -> [Val]
+sumValInt (N i1) (N i2) = [N i]
+                        where i = i1+i2
+
+multValInt :: Val -> Val -> [Val]
+multValInt (N i1) (N i2) = [N i]
+                        where i = i1*i2
+
+subValInt :: Val -> Val -> [Val]
+subValInt (N i1) (N i2) = [N i]
+                        where i = i1-i2
+
+eqValBool :: Val -> Val -> [Val]
+eqValBool (N i1) (N i2) | i1 == i2 = [B True]
+                       | otherwise = [B False]
+
+leValBool :: Val -> Val -> [Val]
+leValBool (N i1) (N i2) | i1<=i2 = [B True]
+                       | otherwise = [B False]
+
+andValBool :: Val -> Val -> [Val]
+andValBool (B b1) (B b2) | b1==True && b2==True = [B True]
+                         | otherwise = [B False]
+
+negValBool :: Val -> [Val]
+negValBool (B b1) | b1==True = [B False]
+                  | otherwise = [B True]
+
 
 
 ----------------------------------A-----------------------------------
@@ -69,26 +98,22 @@ so :: ([AM1], [Val], Memory) -> ([AM1], [Val], Memory)
 -- //TODO meter o vazio ???
 -- //TODO meter tudo em pares com o code stack e state
 so ((PUSH a):t, st, m) = (t, a : st, m)
--- so ((ADD):t, (N h1):(N h2):st, m) = (t, (h1+h2) : st, m)
--- so ((MULT):t, h1:h2:st, m) = (t, (h1*h2) : st, m)
--- so ((SUB):t, h1:h2:st, m) = (t, (h1-h2) : st, m)
--- so ((TRUE):t, st, m) = (t, TRUE : st, m)
--- so ((FALSE):t, st, m) = (t, FALSE : st, m)
--- so ((EQQ):t, h1:h2:st, m) = (t, (h1==h2) : st, m)
--- so ((LE):t, h1:h2:st, m) = (t, (h1<=h2) : st, m)
--- so ((AND):t, h1:h2:st, m) = if h1 == True && h2 == True
---                         then (t, True : st, m)
---                         else (t, False : st, m)
--- so ((NEG):t, h:st, m) = if h == True
---                     then (t, False : st, m)
---                     else (t, True : st, m)
--- so ((GET x):t, st, m) = (t, (get x) : st, m)
--- so ((PUT x):t, h:st, m) = (t, st, update x h m)
--- so ((NOOP):t, st, m) = (t, st, m)
--- so ((BRANCH c1 c2):t, h:st, m) = if h == True
---                              then (c1 : t, st, m)
---                              else (c2 : t, st, m)
--- so ((LOOP c1 c2):t, st, m) = (c1 : (BRANCH (c2 : LOOP c1 c2) NOOP), st, m)
+so ((ADD):t, (h1):(h2):st, m) = (t, (sumValInt h1 h2) ++ st, m)
+so ((MULT):t, h1:h2:st, m) = (t, (multValInt h1 h2) ++ st, m)
+so ((SUB):t, h1:h2:st, m) = (t, (subValInt h1 h2) ++ st, m)
+-- //TODO pode dar problemas com estes true false
+so ((TRUE):t, st, m) = (t, [B True] ++ st, m)
+so ((FALSE):t, st, m) = (t, [B False] ++ st, m)
+so ((EQQ):t, h1:h2:st, m) = (t, (eqValBool h1 h2) ++ st, m)
+so ((LE):t, h1:h2:st, m) = (t, (leValBool h1 h2) ++ st, m)
+so ((AND):t, h1:h2:st, m) = (t, (andValBool h1 h2) ++ st, m)
+so ((NEG):t, h:st, m) = (t, (negValBool h) ++ st, m)
+so ((FETCH x):t, st, m) = (t, (get x m) ++ st, m)
+so ((STORE x):t, h:st, m) = (t, st, update x h m)
+so ((NOOP):t, st, m) = (t, st, m)
+so ((BRANCH c1 c2):t, (B h):st, m) | h == True = (c1 ++ t, st, m)
+                                   | otherwise = (c2 ++ t, st, m)
+so ((LOOP c1 c2):t, st, m) = ([c1] ++ [BRANCH ([c2] ++ [LOOP c1 c2]) [NOOP]], st, m)
 
 
 -----------------------------------------------------B-------------------------------
@@ -97,10 +122,10 @@ so ((PUSH a):t, st, m) = (t, a : st, m)
 -- ca :: Aexp -> Code
 ca :: Aexp -> [AM1]
 ca (C a) = [PUSH (N a)]
-ca (V x) = [GET x]
-ca (Soma a1 a2) = (ca a2) ++ (ca a1) ++ ADD:[]
-ca (Mult a1 a2) = (ca a2) ++ (ca a1) ++ MULT:[]
-ca (Sub a1 a2) = (ca a2) ++ (ca a1) ++ SUB:[]
+ca (V x) = [FETCH x]
+ca (Soma a1 a2) = (ca a2) ++ (ca a1) ++ [ADD]
+ca (Mult a1 a2) = (ca a2) ++ (ca a1) ++ [MULT]
+ca (Sub a1 a2) = (ca a2) ++ (ca a1) ++ [SUB]
 
 
 -- -- cb :: Bexp -> Code
@@ -108,18 +133,18 @@ cb :: Bexp -> [AM1]
 -- -- //TODO ver se e preciso cenas alguma cena a frente do T e do F
 cb (T _) = [TRUE]
 cb (F _) = [FALSE]
--- cb (Eq a1 a2) = [(cb a2) : (cb a1) : EQQ]
--- cb (LE a1 a2) = [(cb a2) : (cb a1) : LE]
--- cb (Not b) = [not(cb b) : NEG]
--- cb (And b1 b2) = [(cb b2) : (cb b1) : AND]
+cb (Eq a1 a2) = (ca a2) ++ (ca a1) ++ [EQQ]
+cb (Leq a1 a2) = (ca a2) ++ (ca a1) ++ [LE]
+cb (Not b) = (cb b) ++ [NEG]
+cb (And b1 b2) = (cb b2) ++ (cb b1) ++ [AND]
 
 
 -- -- cs :: Stm -> Code
 cs :: Stm -> [AM1]
--- cs (Ass x a) = (ca a) : (PUT x)
+-- cs (Ass x a) = (ca a) : (STORE x)
 cs Skip = [NOOP]
--- cs (Comp (s1:s2)) = (cs s1) : (cs s2)
--- cS (If b s1 s2) = (cb b) : BRANCH (cs s1) (cs s2)
+cs (Comp (s1:s2)) = (cs s1) ++ (cs s2)
+-- cS (If b s1 s2) = (cb b) ++ (BRANCH (cs s1) (cs s2))
 -- cS (While b s1) = LOOP (cb b) (cs s1)
 
 
