@@ -1,7 +1,7 @@
 -- AM11
 
 data Aexp = C Int
-          | V Int
+          | V Var
           | Soma Aexp Aexp
           | Mult Aexp Aexp
           | Sub Aexp Aexp
@@ -14,17 +14,18 @@ data Bexp = T Bool
           | And Bexp Bexp
           | Or Bexp Bexp
 
-data Stm = Ass Int Aexp
+data Stm = Ass Var Aexp
          | Skip
          | Comp [Stm]
          | If Bexp Stm Stm
          | While Bexp Stm
 
-type Memory = [(Int, Int)]
+type Memory = [(Var, Int)]
 
 -- //TODO ser se isto esta fixe
 data Val = N Int | B Bool
 type Stack = [Val]
+type Var = String
 
 data AM1 = PUSH Val
         | ADD
@@ -36,8 +37,8 @@ data AM1 = PUSH Val
         | LE
         | AND
         | NEG
-        | FETCH Int
-        | STORE Int
+        | FETCH Var
+        | STORE Var
         | NOOP
         -- // TODO meter com code em vez de [AM1]
         | BRANCH [AM1] [AM1]
@@ -49,10 +50,11 @@ data AM1 = PUSH Val
 type Code = [AM1]
 -- //TODO meter o vazio ???
 
-update :: Int -> Val -> Memory -> Memory
+update :: Var -> Val -> Memory -> Memory
 update n (N a) s = [(n, a)] ++ filter (\(key, value) -> key /= n) s
 
-get :: Int -> Memory -> [Val]
+
+get :: Var -> Memory -> [Val]
 -- //TODO mudar if then else para otherwise
 get n ((key,value):t) = if n == key
                         then [N value]
@@ -140,12 +142,19 @@ cb (And b1 b2) = (cb b2) ++ (cb b1) ++ [AND]
 
 
 -- -- cs :: Stm -> Code
-cs :: Stm -> [AM1]
+cs :: [Stm] -> [AM1]
+cs [] = []
+cs (h:t) = case h of Skip -> [NOOP]
+                     Ass x a -> (ca a) ++ [STORE x]
+                     Comp (s1:s2) -> (cs [s1]) ++ (cs s2)
+                     (If b s1 s2) -> (cb b) ++ [BRANCH (cs [s1]) (cs [s2])]
+                --      (While b s1) -> [LOOP (cb b) (cs [s1])]
 -- cs (Ass x a) = (ca a) : (STORE x)
-cs Skip = [NOOP]
-cs (Comp (s1:s2)) = (cs s1) ++ (cs s2)
--- cS (If b s1 s2) = (cb b) ++ (BRANCH (cs s1) (cs s2))
--- cS (While b s1) = LOOP (cb b) (cs s1)
+-- cs Skip = [NOOP]
+-- cs (Comp (s1:s2)) = (cs s1) ++ (cs s2)
+-- cs (If b s1 s2) = (cb b) ++ (BRANCH (cs s1) (cs s2))
+-- cs (While b s1) = LOOP (cb b) (cs s1)
+
 
 
 -------------------------------------C-----------------------
