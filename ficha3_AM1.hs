@@ -43,7 +43,7 @@ data AM1 = PUSH Val
         -- // TODO meter com code em vez de [AM1]
         | BRANCH [AM1] [AM1]
         -- | BRANCH AM1 AM1
-        | LOOP AM1 AM1
+        | LOOP [AM1] [AM1]
         -- | BRANCH Code Code
         -- | LOOP Code Code
 
@@ -115,7 +115,7 @@ so ((STORE x):t, h:st, m) = (t, st, update x h m)
 so ((NOOP):t, st, m) = (t, st, m)
 so ((BRANCH c1 c2):t, (B h):st, m) | h == True = (c1 ++ t, st, m)
                                    | otherwise = (c2 ++ t, st, m)
-so ((LOOP c1 c2):t, st, m) = ([c1] ++ [BRANCH ([c2] ++ [LOOP c1 c2]) [NOOP]], st, m)
+so ((LOOP c1 c2):t, st, m) = (c1 ++ [BRANCH (c2 ++ [LOOP c1 c2]) [NOOP]], st, m)
 
 
 -----------------------------------------------------B-------------------------------
@@ -148,7 +148,7 @@ cs (h:t) = case h of Skip -> [NOOP]
                      Ass x a -> (ca a) ++ [STORE x]
                      Comp (s1:s2) -> (cs [s1]) ++ (cs s2)
                      (If b s1 s2) -> (cb b) ++ [BRANCH (cs [s1]) (cs [s2])]
-                --      (While b s1) -> [LOOP (cb b) (cs [s1])]
+                     (While b s1) -> [LOOP (cb b) (cs [s1])]
 -- cs (Ass x a) = (ca a) : (STORE x)
 -- cs Skip = [NOOP]
 -- cs (Comp (s1:s2)) = (cs s1) ++ (cs s2)
