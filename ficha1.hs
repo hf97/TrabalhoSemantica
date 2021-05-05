@@ -47,6 +47,7 @@ data Stm = Ass Var Aexp
          | While Bexp Stm
 
 funcS :: Stm -> State -> State
+-- //TODO ver se este ass esta bem
 funcS (Ass x a) s = (x,funcA a s):s
 -- //TODO ver se e preciso ter alguma cena a frente do skip
 funcS Skip s = s
@@ -72,3 +73,5 @@ get v ((key,value):t) = if v == key
                         else get v t
 
 -- //TODO nao sei se esta fixe ao usar funcA nos statements
+
+main

@@ -1,7 +1,7 @@
 -- AM21
 
 data Aexp = C Int
-          | V Int
+          | V Var
           | Soma Aexp Aexp
           | Mult Aexp Aexp
           | Sub Aexp Aexp
@@ -20,13 +20,14 @@ data Stm = Ass Int Aexp
          | If Bexp Stm Stm
          | While Bexp Stm
 
-type Memory = [(Int, Int)]
+type Memory = [(Var, Int)]
 
 -- //TODO ser se isto esta fixe
 data Val = N Int | B Bool
 type Stack = [Val]
+type Var = String
 
-data AM2 = PUSH Int
+data AM2 = PUSH Val
         | ADD
         | MULT
         | SUB
@@ -36,8 +37,8 @@ data AM2 = PUSH Int
         | LE
         | AND
         | NEG
-        | GET Int
-        | PUT Int
+        | FETCH Var
+        | STORE Var
         | NOOP
         | LABEL
         | JUMP
@@ -51,13 +52,14 @@ data AM2 = PUSH Int
 -- type Code = [AM2]
 -- //TODO meter o vazio ???
 
-update :: Int -> Int -> Memory -> Memory
-update n a s = [(n, a)] ++ filter (\(key, value) -> key /= n) s
+update :: Var -> Val -> Memory -> Memory
+update n (N a) s = [(n, a)] ++ filter (\(key, value) -> key /= n) s
 
-get :: Int -> Memory -> Int
+
+get :: Var -> Memory -> [Val]
 -- //TODO mudar if then else para otherwise
 get n ((key,value):t) = if n == key
-                        then value
+                        then [N value]
                         else get n t
 
 
