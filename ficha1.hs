@@ -1,7 +1,4 @@
--- EXERCICIO 8
-
--- A
-
+-- FICHA 1
 type Var = String
 
 type State = [(Var, Int)]
@@ -38,7 +35,6 @@ funcB (Not a1) s = not(funcB a1 s)
 funcB (And b1 b2) s = funcB b1 s && funcB b2 s
 funcB (Or b1 b2) s = funcB b1 s || funcB b2 s
 
---B
 
 data Stm = Ass Var Aexp
          | Skip
@@ -59,6 +55,7 @@ evalNS (If b s1 s2) s | funcB b s == True = evalNS s1 s
 evalNS (While b s1) s | funcB b s == True = evalNS (Comp [s1, While b s1]) s
                       | otherwise = s
 
+
 update :: Var -> Aexp -> State -> State
 update v a s = [(v, z)] ++ filter (\(key, value) -> key /= v) s
                where z = funcA a s
@@ -69,9 +66,15 @@ get v ((key,value):t) | v == key = value
 
 
 main = do
+        putStr "\nVerificar valor de variavel no estado\n"
+        print (funcA (V "x") [("x",1)])
         putStr "\nAtribuição x=1: \n"
-        print(evalNS (Ass "x" (C 1)) [])
+        print (evalNS (Ass "x" (C 1)) [])
         putStr "\nValidar x == y and True, no estado em que x=1 e y=1:\n"
         print (funcB (And ((Eq (V "x") (V "y"))) (T True)) [("x",1),("y",1)])
-        putStr "\nx=1; y=2; x+y:\n"
-        print (evalNS (Comp [(Ass "a" (C 1)), (Ass "y" (C 2), (Soma (V "x") (V "y")))]) [])
+        putStr "\nComp x=1;y=3\n"
+        print (evalNS (Comp [(Ass "a" (C 1)), (Ass "y" (C 3))]) [])
+        putStr "\nx=1; y=3; if x<=y then x=y else skip\n"
+        print (evalNS (Comp [(Ass "x" (C 1)), (Ass "y" (C 3)) , (If (Leq (V "x") (V "y")) (Ass "x" (V "y")) (Skip))]) [])
+        putStr "\nx=1; y=3; while y>x do x=x+1:\n"
+        print (evalNS (Comp [(While (Not(Leq (V "y") (V "x"))) (Ass "x" (Soma (V "x") (C 1))))]) [("x",1),("y",3)])
