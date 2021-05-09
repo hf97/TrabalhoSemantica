@@ -1,5 +1,5 @@
         
--- AM11
+-- FICHA3 AM1
 
 data Aexp = C Int
           | V Var
