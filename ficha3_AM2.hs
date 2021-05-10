@@ -122,13 +122,10 @@ cs [] = []
 cs (h:t) = case h of Skip -> [NOOP]
                      Ass x a -> (ca a) ++ [STORE x]
                      Comp (s1:s2) -> (cs [s1]) ++ (cs s2)
-                --      (If b s1 s2) -> (cb b) ++ [BRANCH (cs [s1]) (cs [s2])]
-                --      (While b s1) -> [LOOP (cb b) (cs [s1])]
--- cs (Ass x a) = (ca a) : (STORE x)
--- cs Skip = [NOOP]
--- cs (Comp (s1:s2)) = (cs s1) ++ (cs s2)
--- cs (If b s1 s2) = (cb b) ++ (BRANCH (cs s1) (cs s2))
--- cs (While b s1) = LOOP (cb b) (cs s1)
+                     (If b s1 s2) -> case (cb b) of [TRUE] -> [LABEL 0]
+                                                    [FALSE] -> [LABEL 1]
+                     (While b s1) -> case (cb b) of [TRUE] -> [LABEL 0]
+                                                    [FALSE] -> [LABEL 1]
 
 
 -------------------------------------G-----------------------

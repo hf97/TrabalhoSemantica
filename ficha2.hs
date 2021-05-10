@@ -101,7 +101,7 @@ evalSOS ((h:t), s) = evalSOS (stepSOS [h] s)
 
 
 main = do
-        putStr "\nExemplos para 1 passo\n:"
+        putStr "\nExemplos para 1 passo:\n"
         print (stepSOS ([Ass "x" (C 1)]) [])
         print (stepSOS ([Skip, Ass "x" (C 1)]) [])
         print (stepSOS ([If (F False) (Ass "x" (C 1)) (Ass "y" (C 2))]) [])
