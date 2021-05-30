@@ -55,7 +55,6 @@ funcB (And a1 a2) s = funcB a1 s && funcB a2 s
 funcB (Or a1 a2) s = funcB a1 s || funcB a2 s
 
 evalNS :: Stm -> State -> State
--- evalNS (Ass x a) s = (x,funcA a s):s
 evalNS (Ass x a) s = update x a s
 evalNS Skip s = s
 evalNS (Comp []) s = s
@@ -64,19 +63,6 @@ evalNS (If b s1 s2) s | funcB b s == True = evalNS s1 s
                       | otherwise = evalNS s2 s
 evalNS (While b s1) s | funcB b s == True = evalNS (Comp [s1, While b s1]) s
                       | otherwise = s
-
-
--- //TODO Penso que tenho de passa o primeiro tipo para [Stm]
--- stepSOS :: Stm -> State -> (Prog, State)
--- stepSOS (Ass x a) s = ([], update x a s)
--- stepSOS Skip s = ([], s)
--- -- stepSOS Comp1
--- -- stepSOS Comp2
--- stepSOS (Comp ((Ass x a):a2)) s = stepSOS (Ass x a) s
--- -- stepSOS (Comp (a1:a2)) s = stepSOS (Comp (Step))
--- stepSOS (If b a1 a2) s | (funcB b s) == True = ([a1],s)
---                        | otherwise = ([a2],s)
--- stepSOS (While b a) s = ([If b a Skip], s)
 
 
 stepSOS :: [Stm] -> State -> (Prog, State)
@@ -88,13 +74,11 @@ stepSOS (h:t) s = case h of (Ass x a) -> ([]++t, update x a s)
                             (While b a) -> ([If b a Skip]++t, s)
 
 
--- //TODO testar
 nstepSOS :: (Prog, State) -> Int -> (Prog, State)
 nstepSOS ((h:t), s) n | n>1 = nstepSOS (stepSOS [h] s) (n-1)
                       | otherwise = ((h:t),s)
 
 
--- //TODO testar
 evalSOS :: (Prog, State) -> State
 evalSOS ([], s) = s
 evalSOS ((h:t), s) = evalSOS (stepSOS [h] s)
