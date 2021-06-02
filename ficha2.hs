@@ -54,16 +54,6 @@ funcB (Not a1) s = not(funcB a1 s)
 funcB (And a1 a2) s = funcB a1 s && funcB a2 s
 funcB (Or a1 a2) s = funcB a1 s || funcB a2 s
 
-evalNS :: Stm -> State -> State
-evalNS (Ass x a) s = update x a s
-evalNS Skip s = s
-evalNS (Comp []) s = s
-evalNS (Comp (s1:s2)) s = evalNS (Comp s2) (evalNS s1 s) 
-evalNS (If b s1 s2) s | funcB b s == True = evalNS s1 s
-                      | otherwise = evalNS s2 s
-evalNS (While b s1) s | funcB b s == True = evalNS (Comp [s1, While b s1]) s
-                      | otherwise = s
-
 
 stepSOS :: [Stm] -> State -> (Prog, State)
 stepSOS (h:t) s = case h of (Ass x a) -> ([]++t, update x a s)
